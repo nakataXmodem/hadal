@@ -411,7 +411,7 @@ async def _scan_network(session: aiohttp.ClientSession, net: ipaddress._BaseNetw
 
 async def add_network_blocks(session: aiohttp.ClientSession, count: int = 3) -> bool:
     """Add new network blocks via API endpoint"""
-    endpoint = os.getenv("ADD_BLOCKS_ENDPOINT", os.getenv("APP_BASE_URL", "http://localhost") + "/add-network-blocks")
+    endpoint = os.getenv("ADD_BLOCKS_ENDPOINT", APP_BASE_URL + "/add-network-blocks")
     payload = {"count": count}
     headers = {}
     if API_AUTH_TOKEN:
