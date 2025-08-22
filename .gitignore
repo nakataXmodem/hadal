@@ -114,3 +114,6 @@ dmypy.json
 crawler/config.py
 app/config.py
 postgres_data/
+
+certbot/
+config.py
