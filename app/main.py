@@ -99,8 +99,8 @@ async def index(request: Request):
                 'id': row[0],
                 'network': str(row[1]),
                 'status': row[2],
-                'assigned_to': row[3],
-                'last_assigned': row[4].strftime('%Y-%m-%d %H:%M:%S') if row[4] else None,
+                # 'assigned_to': row[3],  # Commented out - sensitive info
+                # 'last_assigned': row[4].strftime('%Y-%m-%d %H:%M:%S') if row[4] else None,  # Commented out - sensitive info
                 'created_at': row[5].strftime('%Y-%m-%d %H:%M:%S') if row[5] else None,
                 'updated_at': row[6].strftime('%Y-%m-%d %H:%M:%S') if row[6] else None
             })
@@ -356,8 +356,8 @@ async def network_blocks(request: Request):
                 'id': row[0],
                 'network': str(row[1]),
                 'status': row[2],
-                'assigned_to': row[3],
-                'last_assigned': row[4].strftime('%Y-%m-%d %H:%M:%S') if row[4] else None,
+                # 'assigned_to': row[3],  # Commented out - sensitive info
+                # 'last_assigned': row[4].strftime('%Y-%m-%d %H:%M:%S') if row[4] else None,  # Commented out - sensitive info
                 'created_at': row[5].strftime('%Y-%m-%d %H:%M:%S') if row[5] else None,
                 'updated_at': row[6].strftime('%Y-%m-%d %H:%M:%S') if row[6] else None
             })
@@ -546,8 +546,8 @@ async def update_block_status(request: Request):
             "id": row[0],
             "network": row[1],
             "status": row[2],
-            "assigned_to": row[3],
-            "last_assigned": row[4].strftime('%Y-%m-%d %H:%M:%S') if row[4] else None,
+            # "assigned_to": row[3],  # Commented out - sensitive info
+            # "last_assigned": row[4].strftime('%Y-%m-%d %H:%M:%S') if row[4] else None,  # Commented out - sensitive info
             "created_at": row[5].strftime('%Y-%m-%d %H:%M:%S') if row[5] else None,
             "updated_at": row[6].strftime('%Y-%m-%d %H:%M:%S') if row[6] else None,
         })
@@ -605,8 +605,8 @@ async def claim_block(request: Request):
             "id": row[0],
             "network": row[1],
             "status": row[2],
-            "assigned_to": row[3],
-            "last_assigned": row[4].strftime('%Y-%m-%d %H:%M:%S') if row[4] else None,
+            # "assigned_to": row[3],  # Commented out - sensitive info
+            # "last_assigned": row[4].strftime('%Y-%m-%d %H:%M:%S') if row[4] else None,  # Commented out - sensitive info
             "created_at": row[5].strftime('%Y-%m-%d %H:%M:%S') if row[5] else None,
             "updated_at": row[6].strftime('%Y-%m-%d %H:%M:%S') if row[6] else None,
         })

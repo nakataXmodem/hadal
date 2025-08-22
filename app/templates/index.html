@@ -103,7 +103,6 @@
                             <tr>
                                 <th scope="col">Network</th>
                                 <th scope="col">Status</th>
-                                <th scope="col">Assigned To</th>
                                 <th scope="col">Created</th>
                                 <th scope="col">Updated</th>
                             </tr>
@@ -125,13 +124,7 @@
                                     <span class="s-badge s-badge__outlined">{{ block.status }}</span>
                                     {% endif %}
                                 </td>
-                                <td>
-                                    {% if block.assigned_to %}
-                                    <span class="s-badge s-badge__outlined">{{ block.assigned_to }}</span>
-                                    {% else %}
-                                    <span class="s-text-muted">-</span>
-                                    {% endif %}
-                                </td>
+
                                 <td>
                                     <time class="s-text-caption">{{ block.created_at }}</time>
                                 </td>
