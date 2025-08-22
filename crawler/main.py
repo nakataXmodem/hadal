@@ -353,7 +353,7 @@ async def post_results(session: aiohttp.ClientSession, results: List[Dict]) -> N
         )
         
 async def update_block_status(session: aiohttp.ClientSession, block_id: int, status: str) -> None:
-    endpoint = os.getenv("BLOCK_STATUS_ENDPOINT", os.getenv("APP_BASE_URL", "http://localhost") + "/update-block-status")
+    endpoint = os.getenv("BLOCK_STATUS_ENDPOINT", APP_BASE_URL + "/update-block-status")
     payload = {"id": block_id, "status": status}
     headers = {}
     if API_AUTH_TOKEN:
