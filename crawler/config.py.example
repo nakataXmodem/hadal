@@ -3,7 +3,7 @@ import os
 CLAIM_ENDPOINT = os.getenv("CLAIM_ENDPOINT", os.getenv("APP_BASE_URL", "http://localhost") + "/claim-block")
 BULK_ENDPOINT = os.getenv("BULK_ENDPOINT", os.getenv("APP_BASE_URL", "http://localhost") + "/add-responses-batch")
 ADD_BLOCKS_ENDPOINT = os.getenv("ADD_BLOCKS_ENDPOINT", os.getenv("APP_BASE_URL", "http://hadal.data-line.gr") + "/add-network-blocks")
-
+APP_BASE_URL = os.getenv("APP_BASE_URL", "http://hadal.data-line.gr")
 
 # Authentication token for API endpoints
 API_AUTH_TOKEN = ""
