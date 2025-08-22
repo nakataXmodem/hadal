@@ -1,7 +1,7 @@
 import os
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from contextlib import asynccontextmanager
 from starlette.applications import Starlette
 from starlette.responses import HTMLResponse, JSONResponse
@@ -10,12 +10,9 @@ from starlette.templating import Jinja2Templates
 from starlette.requests import Request
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import text, func
+from sqlalchemy import text, func, and_, or_, desc, asc, not_
 from typing import Optional, Dict, Any, List
 import re
-from datetime import datetime, timedelta
-from sqlalchemy import and_, or_, desc, asc, not_, func
-from sqlalchemy.sql import text
 import csv
 import io
 
@@ -551,6 +548,184 @@ async def update_block_status(request: Request):
             "created_at": row[5].strftime('%Y-%m-%d %H:%M:%S') if row[5] else None,
             "updated_at": row[6].strftime('%Y-%m-%d %H:%M:%S') if row[6] else None,
         })
+
+@app.route("/add-network-blocks", methods=["POST"])
+async def add_network_blocks_api(request: Request):
+    """Add network blocks via API with authentication.
+    
+    Body: {"count": <number>} or {"subnets": ["192.168.1.0/24", "10.0.0.0/24"]}
+    """
+    try:
+        body = await request.json()
+        count = body.get("count")
+        subnets = body.get("subnets", [])
+        
+        if count is not None and count <= 0:
+            return JSONResponse({"detail": "count must be > 0"}, status_code=400)
+        
+        if count is None and not subnets:
+            return JSONResponse({"detail": "either count or subnets must be provided"}, status_code=400)
+        
+        inserted_count = 0
+        inserted_subnets = []
+        
+        async with get_db_session() as session:
+            if subnets:
+                # Add specific subnets
+                for subnet_str in subnets:
+                    try:
+                        from ipaddress import ip_network
+                        net = ip_network(subnet_str, strict=False)
+                        normalized = str(net)
+                        
+                        # Check if it already exists
+                        result = await session.execute(text(
+                            "SELECT id FROM network_blocks WHERE network = :network"
+                        ), {"network": normalized})
+                        existing = result.fetchone()
+                        
+                        if existing:
+                            continue  # Skip if already exists
+                        
+                        # Insert new block
+                        new_block = NetworkBlock(network=normalized, status="PENDING")
+                        session.add(new_block)
+                        inserted_count += 1
+                        inserted_subnets.append(normalized)
+                        
+                    except Exception as e:
+                        logger.warning(f"Invalid subnet '{subnet_str}': {e}")
+                        continue
+                
+                await session.commit()
+                
+            elif count is not None:
+                # Add N blocks using the existing logic from db-cli.py
+                import random
+                from ipaddress import ip_network, IPv4Address
+                
+                EXCLUDED = [
+                    ip_network("0.0.0.0/8"),
+                    ip_network("10.0.0.0/8"),
+                    ip_network("100.64.0.0/10"),
+                    ip_network("127.0.0.0/8"),
+                    ip_network("169.254.0.0/16"),
+                    ip_network("172.16.0.0/12"),
+                    ip_network("192.0.0.0/24"),
+                    ip_network("192.0.2.0/24"),
+                    ip_network("192.88.99.0/24"),
+                    ip_network("192.168.0.0/16"),
+                    ip_network("198.18.0.0/15"),
+                    ip_network("198.51.100.0/24"),
+                    ip_network("203.0.113.0/24"),
+                    ip_network("224.0.0.0/4"),
+                    ip_network("240.0.0.0/4"),
+                ]
+
+                def _is_public(net24) -> bool:
+                    for ex in EXCLUDED:
+                        if net24.subnet_of(ex):
+                            return False
+                    return True
+
+                def _pick_seed(existing_seed: str | None) -> str:
+                    if existing_seed:
+                        return existing_seed
+                    # Fallback: pick a random public /24 as seed
+                    while True:
+                        addr = random.randint(0, 0xFFFFFFFF)
+                        addr = addr & 0xFFFFFF00  # align to /24
+                        net = ip_network(f"{IPv4Address(addr)}/24", strict=False)
+                        if _is_public(net):
+                            return str(net)
+
+                def _offsets(start_with_up: bool):
+                    step = 1
+                    if start_with_up:
+                        yield 1
+                        yield -1
+                    else:
+                        yield -1
+                        yield 1
+                    step = 2
+                    while True:
+                        yield step
+                        yield -step
+                        step += 1
+
+                # Choose a random existing subnet as the seed
+                seed_row = await session.execute(text("SELECT network::text FROM network_blocks WHERE status='COMPLETED' ORDER BY random() LIMIT 1"))
+                seed_cidr = seed_row.scalar()
+                seed_cidr = _pick_seed(seed_cidr)
+                
+                try:
+                    seed_net = ip_network(seed_cidr, strict=False)
+                except Exception as e:
+                    logger.error(f"Invalid seed subnet from DB '{seed_cidr}': {e}")
+                    return JSONResponse({"detail": "Failed to generate seed subnet"}, status_code=500)
+
+                base_int = int(seed_net.network_address)
+                start_with_up = bool(random.getrandbits(1))
+                off_gen = _offsets(start_with_up)
+                chunk: list[str] = []
+                seen: set[str] = set()
+
+                while inserted_count < count:
+                    try:
+                        off = next(off_gen)
+                    except StopIteration:
+                        break
+                    cand_int = base_int + (off * 256)
+                    if cand_int < 0 or cand_int > 0xFFFFFFFF:
+                        continue
+                    cand_net = ip_network(f"{IPv4Address(cand_int)}/24", strict=False)
+                    if not _is_public(cand_net):
+                        continue
+                    cidr = str(cand_net)
+                    if cidr in seen:
+                        continue
+                    seen.add(cidr)
+                    chunk.append(cidr)
+                    
+                    if len(chunk) >= 1024:  # BATCH size
+                        result = await session.execute(text(
+                            "SELECT network::text FROM network_blocks WHERE network = ANY(:chunk)"
+                        ), {"chunk": chunk})
+                        existing = {str(row[0]) for row in result.fetchall()}
+                        new_items = [c for c in chunk if c not in existing]
+                        needed = count - inserted_count
+                        to_add = new_items[:needed]
+                        if to_add:
+                            session.add_all([NetworkBlock(network=c, status="PENDING") for c in to_add])
+                            await session.commit()
+                            inserted_count += len(to_add)
+                            inserted_subnets.extend(to_add)
+                        chunk.clear()
+
+                # Final flush
+                if inserted_count < count and chunk:
+                    result = await session.execute(text(
+                        "SELECT network::text FROM network_blocks WHERE network = ANY(:chunk)"
+                    ), {"chunk": chunk})
+                    existing = {str(row[0]) for row in result.fetchall()}
+                    new_items = [c for c in chunk if c not in existing]
+                    needed = count - inserted_count
+                    to_add = new_items[:needed]
+                    if to_add:
+                        session.add_all([NetworkBlock(network=c, status="PENDING") for c in to_add])
+                        await session.commit()
+                        inserted_count += len(to_add)
+                        inserted_subnets.extend(to_add)
+
+        return JSONResponse({
+            "inserted": inserted_count,
+            "subnets": inserted_subnets,
+            "seed": seed_cidr if count is not None else None
+        })
+        
+    except Exception as e:
+        logger.error(f"Error adding network blocks: {e}")
+        return JSONResponse({"detail": f"Failed to add network blocks: {str(e)}"}, status_code=500)
 
 @app.route("/claim-block", methods=["POST"])
 async def claim_block(request: Request):

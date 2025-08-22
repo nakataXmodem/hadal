@@ -409,6 +409,48 @@ async def _scan_network(session: aiohttp.ClientSession, net: ipaddress._BaseNetw
         _sanitize_result_fields(r)
     return results, status_counts
 
+async def add_network_blocks(session: aiohttp.ClientSession, count: int = 3) -> bool:
+    """Add new network blocks via API endpoint"""
+    endpoint = os.getenv("ADD_BLOCKS_ENDPOINT", os.getenv("APP_BASE_URL", "http://localhost") + "/add-network-blocks")
+    payload = {"count": count}
+    headers = {}
+    if API_AUTH_TOKEN:
+        headers["X-API-Token"] = API_AUTH_TOKEN
+    
+    start = time.monotonic()
+    try:
+        async with session.post(endpoint, json=payload, headers=headers, timeout=DEFAULT_TIMEOUT_SECS) as resp:
+            body = await resp.text()
+            elapsed_ms = int((time.monotonic() - start) * 1000)
+            logging.info(f"POST {endpoint} count={count} -> {resp.status} in {elapsed_ms}ms")
+            if resp.status == 200:
+                try:
+                    data = json.loads(body)
+                    logging.info(f"Added {data.get('inserted', 0)} network blocks")
+                    return True
+                except Exception:
+                    logging.warning("Failed to decode add blocks response JSON")
+                    return False
+            else:
+                logging.error(f"Failed to add network blocks: {resp.status} - {body}")
+                return False
+    except Exception as exc:
+        elapsed_ms = int((time.monotonic() - start) * 1000)
+        logging.error(f"POST {endpoint} count={count} failed in {elapsed_ms}ms: {exc}")
+        
+        # Send error notification
+        await send_error_notification(
+            error=exc,
+            context="Add Network Blocks API Call",
+            additional_info={
+                "Endpoint": endpoint,
+                "Count": count,
+                "Response Time": f"{elapsed_ms}ms",
+                "Status Code": getattr(exc, 'status', 'Unknown')
+            }
+        )
+        return False
+
 async def run_once() -> None:
     overall_start = time.monotonic()
     conn = aiohttp.TCPConnector(ssl=False, limit=CONCURRENCY)
@@ -417,8 +459,11 @@ async def run_once() -> None:
             claim = await claim_block(session)
             if not claim:
                 print("No block to claim")
-                os.system("docker compose exec app python db-cli.py add-network-blocks -n 3")
-                print("added...continue")
+                success = await add_network_blocks(session, 3)
+                if success:
+                    print("Added new blocks, continuing...")
+                else:
+                    print("Failed to add new blocks")
                 return
             network_cidr = claim["network"]
             block_id = claim["id"]

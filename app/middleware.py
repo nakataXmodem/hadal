@@ -18,7 +18,8 @@ class AuthTokenMiddleware(BaseHTTPMiddleware):
             "/add-response", 
             "/add-responses-batch", 
             "/claim-block", 
-            "/update-block-status"
+            "/update-block-status",
+            "/add-network-blocks"
         ]
     
     async def dispatch(self, request: Request, call_next):
