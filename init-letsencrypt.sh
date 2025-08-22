@@ -1,11 +1,39 @@
 #!/bin/bash
 
 # Configuration
-domains=(your-domain.com www.your-domain.com)
+domains=(hadal.data-line.gr)
 rsa_key_size=4096
 data_path="./certbot"
-email="your-email@example.com" # Adding a valid address is strongly recommended
-staging=0 # Set to 1 if you're testing your setup to avoid hitting request limits
+email="nakatamodem@i2pmail.org" # Adding a valid address is strongly recommended
+staging=1 # Set to 1 if you're testing your setup to avoid hitting request limits
+
+echo "=== Let's Encrypt SSL Certificate Setup ==="
+echo "Domain: ${domains[0]}"
+echo "Email: $email"
+echo "Staging mode: $staging"
+echo
+
+# Check if domain resolves
+echo "### Checking DNS resolution for ${domains[0]} ..."
+if ! nslookup ${domains[0]} > /dev/null 2>&1; then
+    echo "ERROR: Domain ${domains[0]} does not resolve to an IP address."
+    echo "Please ensure:"
+    echo "1. The domain name is correct"
+    echo "2. DNS records are properly configured"
+    echo "3. DNS propagation has completed (can take up to 48 hours)"
+    echo
+    echo "You can test DNS resolution with: nslookup ${domains[0]}"
+    exit 1
+fi
+
+# Get the IP address the domain resolves to
+domain_ip=$(nslookup ${domains[0]} | grep -A1 "Name:" | tail -1 | awk '{print $2}')
+echo "Domain ${domains[0]} resolves to: $domain_ip"
+
+# Check if this IP matches your server's public IP
+echo "Please verify that $domain_ip is your server's public IP address."
+echo "If not, update your DNS records to point ${domains[0]} to your server's IP."
+echo
 
 if [ -d "$data_path" ]; then
   read -p "Existing data found for $domains. Continue and replace existing certificate? (y/N) " decision
@@ -32,9 +60,36 @@ docker-compose run --rm --entrypoint "\
     -subj '/CN=localhost'" certbot
 echo
 
-echo "### Starting nginx ..."
+echo "### Starting nginx with temporary configuration ..."
+# Use temporary configuration for initial setup
+cp nginx.conf nginx.conf.backup
+cp nginx.conf.temp nginx.conf
 docker-compose up --force-recreate -d nginx
 echo
+
+echo "### Waiting for nginx to start ..."
+sleep 10
+
+echo "### Testing nginx configuration ..."
+if ! docker-compose exec nginx nginx -t; then
+    echo "ERROR: Nginx configuration test failed"
+    docker-compose logs nginx
+    exit 1
+fi
+
+echo "### Testing domain accessibility ..."
+if ! curl -s -o /dev/null -w "%{http_code}" http://${domains[0]} | grep -q "200\|404\|502"; then
+    echo "WARNING: Domain ${domains[0]} might not be accessible from the internet"
+    echo "This could be due to:"
+    echo "1. Firewall blocking port 80"
+    echo "2. DNS not fully propagated"
+    echo "3. Server not accessible from the internet"
+    echo
+    read -p "Continue anyway? (y/N) " decision
+    if [ "$decision" != "Y" ] && [ "$decision" != "y" ]; then
+        exit 1
+    fi
+fi
 
 echo "### Deleting dummy certificate for $domains ..."
 docker-compose run --rm --entrypoint "\
@@ -67,7 +122,23 @@ docker-compose run --rm --entrypoint "\
     --rsa-key-size $rsa_key_size \
     --agree-tos \
     --force-renewal" certbot
-echo
 
-echo "### Reloading nginx ..."
-docker-compose exec nginx nginx -s reload
+if [ $? -eq 0 ]; then
+    echo "### Certificate obtained successfully!"
+    echo "### Switching to full SSL configuration ..."
+    cp nginx.conf.backup nginx.conf
+    docker-compose exec nginx nginx -s reload
+    echo "### SSL setup completed successfully!"
+    echo "### Your site should now be accessible at https://${domains[0]}"
+else
+    echo "### Certificate request failed!"
+    echo "### Common issues:"
+    echo "1. DNS not properly configured"
+    echo "2. Domain not accessible from the internet"
+    echo "3. Firewall blocking port 80"
+    echo "4. Let's Encrypt rate limits (if staging=0)"
+    echo
+    echo "### Keeping temporary configuration for debugging"
+    echo "### Check logs with: docker-compose logs certbot"
+    echo "### Test domain accessibility: curl -I http://${domains[0]}"
+fi

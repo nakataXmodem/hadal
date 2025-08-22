@@ -5,8 +5,8 @@ services:
     expose:
       - "8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:password@db:5432/webapp_stats
-      - SECRET_KEY=your-secret-key-here_1337
+      - DATABASE_URL=${DATABASE_URL}
+      - SECRET_KEY=${SECRET_KEY}
     volumes:
       - ./app:/app
     depends_on:
@@ -20,16 +20,15 @@ services:
     ports:
       - "127.0.0.1:5432:5432"
     environment:
-      - POSTGRES_DB=webapp_stats
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       #- postgres_data:/var/lib/postgresql/data
       - ./postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      #test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      test: ["CMD-SHELL", "pg_isready -U postgres -d webapp_stats"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -57,7 +56,7 @@ services:
     volumes:
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
-    command: certonly --webroot -w /var/www/certbot --force-renewal --email your-email@example.com -d your-domain.com --agree-tos
+    command: certonly --webroot -w /var/www/certbot --force-renewal --email ${CERTBOT_EMAIL} -d ${CERTBOT_DOMAIN} --agree-tos
 
 #volumes:
 #  postgres_data:

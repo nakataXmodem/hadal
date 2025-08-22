@@ -23,75 +23,9 @@ A comprehensive network scanning and response analysis platform built with Pytho
 
 ## 📋 Prerequisites
 
-- Python 3.8+
-- PostgreSQL 12+
-- Docker & Docker Compose (optional)
-
-## 🛠️ Installation
-
-### Option 1: Docker (Recommended)
-
-1. Clone the repository:
-```bash
-git clone <your-repo-url>
-cd hadal2
-```
-
-2. Start the application:
-```bash
-docker-compose up -d
-```
-
-3. Apply database migrations:
-```bash
-docker-compose exec app alembic upgrade head
-```
-
-4. Access the application at `http://localhost:8000`
-
-### Option 2: Local Development
-
-1. Install Python dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-2. Set up PostgreSQL database and update `DATABASE_URL` in environment
-
-3. Copy configuration files:
-```bash
-cp app/config.py.example app/config.py
-cp crawler/config.py.example crawler/config.py
-```
-
-4. Update configuration with your settings
-
-5. Run migrations:
-```bash
-alembic upgrade head
-```
-
-6. Start the application:
-```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-## 🔧 Configuration
-
-### Environment Variables
-
-- `DATABASE_URL`: PostgreSQL connection string
-- `API_AUTH_TOKEN`: Authentication token for API endpoints
-- `TELEGRAM_BOT_TOKEN`: Telegram bot token for notifications
-- `TELEGRAM_CHAT_ID`: Telegram chat ID for notifications
-
-### Security Notes
-
-⚠️ **Important**: Before deploying to production:
-- Change default API authentication tokens
-- Update Telegram bot credentials
-- Use environment variables for sensitive configuration
-- Enable HTTPS in production
+- Python 3.13
+- PostgreSQL 17
+- Docker & Docker Compose
 
 ## 📊 Usage
 
@@ -124,16 +58,6 @@ The application uses PostgreSQL with the following main tables:
 - `host_responses`: Individual host scan results
 - `alembic_version`: Migration tracking
 
-## 🔍 Search Features
-
-Advanced search capabilities include:
-- **Real-time AJAX search** with debounced input
-- **Multi-field filtering** (IP, port, status, banner, etc.)
-- **Include/exclude filters** for each field
-- **Date range filtering**
-- **Sorting and pagination**
-- **Export to JSON/CSV**
-
 ## 🐳 Docker
 
 The application includes:
@@ -158,11 +82,6 @@ The application includes:
 - Security headers via Nginx
 
 ## 🚀 Development
-
-### Running Tests
-```bash
-# Add your test commands here
-```
 
 ### Database Migrations
 ```bash
@@ -237,4 +156,3 @@ For issues and questions:
 - Enable Nginx caching for static files
 - Use database connection pooling
 - Implement Redis for session storage (if needed)
-- Add CDN for static assets in production

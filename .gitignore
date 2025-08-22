@@ -62,7 +62,6 @@ logs/
 .env.local
 .env.production
 .env.staging
-.env.example
 
 # Temporary files
 *.tmp
