@@ -25,7 +25,7 @@ target_metadata = Base.metadata
 
 def get_url():
     """Get database URL from environment or config"""
-    return os.getenv("DATABASE_URL", "postgresql://postgres:password@localhost:5432/webapp_stats")
+    return os.getenv("DATABASE_URL", "")
     
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.

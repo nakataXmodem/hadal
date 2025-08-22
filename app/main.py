@@ -68,7 +68,7 @@ app = Starlette(
 app.add_middleware(ErrorHandlingMiddleware)
 app.add_middleware(AuthTokenMiddleware)
 
-# Mount static files
+# Mount static files - commented out since nginx serves static files directly
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.route("/")

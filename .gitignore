@@ -117,3 +117,11 @@ postgres_data/
 
 certbot/
 config.py
+
+letsencrypt/
+ssl/
+
+nginx/conf.d/ 
+nginx/ssl/
+certbot/www/
+certbot/conf/
