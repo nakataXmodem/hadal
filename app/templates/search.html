@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Search - Hadal</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/stacks.min.css') }}">
+    <script src="{{ url_for('static', path='/js/stacks.min.js') }}"></script>
+    <style>
+        .search-section { margin-bottom: 16px; }
+        .filter-row { display: flex; gap: 8px; margin-bottom: 8px; }
+        .filter-group { flex: 1; }
+        .advanced-toggle { cursor: pointer; margin-bottom: 8px; }
+        .advanced-filters { display: none; }
+        .advanced-filters.show { display: block; }
+        .sort-controls { display: flex; gap: 8px; align-items: center; }
+        .clear-filters { margin-left: auto; }
+        .timing-info { font-size: 12px; color: #6a737c; margin-top: 8px; }
+        .error-message { color: #d1383d; margin-top: 8px; }
+        .success-message { color: #0c0d0e; margin-top: 8px; }
+        .results-container { min-height: 200px; }
+        .pagination-info { display: flex; justify-content: space-between; align-items: center; }
+        .export-buttons { margin-top: 16px; }
+        .has-filters { background-color: #f1f2f3; }
+    </style>
+</head>
+<body class="theme-dark p16">
+    <main>
+        <!-- Navigation -->
+        <nav class="s-breadcrumbs mb16">
+            <a href="/" class="s-breadcrumbs--item">Home</a>
+            <span class="s-breadcrumbs--item s-breadcrumbs--item__current">Advanced Search</span>
+        </nav>
+
+        <!-- Header -->
+        <div class="d-flex ai-center jc-space-between mb24">
+            <h1 class="fs-headline1">Advanced Search</h1>
+            <a href="/network-blocks" class="s-btn s-btn__primary">Network Blocks</a>
+        </div>
+
+        <!-- Error Display -->
+        {% if error %}
+        <div class="s-notice s-notice__danger mb16">
+            <div class="s-notice--content">
+                <p class="s-notice--message">{{ error }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Search Form -->
+        <div class="s-card mb24">
+            <div class="s-card--header">
+                <h2 class="s-card--title">Search Filters</h2>
+            </div>
+            <div class="s-card--body">
+                <form method="GET" action="/search" id="search-form">
+                    <!-- Basic Search -->
+                    <div class="search-section">
+                        <label class="s-label" for="query">Quick Search (all fields)</label>
+                        <input 
+                            type="text" 
+                            id="query"
+                            name="query" 
+                            value="{{ filters.query or '' }}" 
+                            class="s-input" 
+                            placeholder="Search across all fields..."
+                            autocomplete="off"
+                        >
+                    </div>
+
+                    <!-- Advanced Filters Toggle -->
+                    <div class="advanced-toggle" onclick="toggleAdvanced()">
+                        <span class="s-text-caption">🔽 Advanced Filters</span>
+                    </div>
+
+                    <!-- Advanced Filters -->
+                    <div class="advanced-filters" id="advanced-filters">
+                        <!-- IP Address Filters -->
+                        <div class="search-section">
+                            <h3 class="s-text-caption mb8">IP Address</h3>
+                            <div class="filter-row">
+                                <div class="filter-group">
+                                    <label class="s-label" for="ip_address">Include</label>
+                                    <input type="text" id="ip_address" name="ip_address" 
+                                           value="{{ filters.ip_address or '' }}" 
+                                           class="s-input" placeholder="192.168.1.1">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="s-label" for="ip_address_exclude">Exclude</label>
+                                    <input type="text" id="ip_address_exclude" name="ip_address_exclude" 
+                                           value="{{ filters.ip_address_exclude or '' }}" 
+                                           class="s-input" placeholder="192.168.1.1">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Port Filters -->
+                        <div class="search-section">
+                            <h3 class="s-text-caption mb8">Port</h3>
+                            <div class="filter-row">
+                                <div class="filter-group">
+                                    <label class="s-label" for="port">Include</label>
+                                    <input type="number" id="port" name="port" 
+                                           value="{{ filters.port or '' }}" 
+                                           class="s-input" placeholder="80" min="1" max="65535">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="s-label" for="port_exclude">Exclude</label>
+                                    <input type="number" id="port_exclude" name="port_exclude" 
+                                           value="{{ filters.port_exclude or '' }}" 
+                                           class="s-input" placeholder="80" min="1" max="65535">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Status Code Filters -->
+                        <div class="search-section">
+                            <h3 class="s-text-caption mb8">Status Code</h3>
+                            <div class="filter-row">
+                                <div class="filter-group">
+                                    <label class="s-label" for="status_code">Include</label>
+                                    <input type="number" id="status_code" name="status_code" 
+                                           value="{{ filters.status_code or '' }}" 
+                                           class="s-input" placeholder="200" min="100" max="599">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="s-label" for="status_code_exclude">Exclude</label>
+                                    <input type="number" id="status_code_exclude" name="status_code_exclude" 
+                                           value="{{ filters.status_code_exclude or '' }}" 
+                                           class="s-input" placeholder="404" min="100" max="599">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Protocol Filter - Not developed yet -->
+                        <!-- <div class="search-section">
+                            <h3 class="s-text-caption mb8">Protocol</h3>
+                            <input type="text" id="protocol" name="protocol" 
+                                   value="{{ filters.protocol or '' }}" 
+                                   class="s-input" placeholder="tcp, http, https">
+                        </div> -->
+
+                        <!-- Title Filters -->
+                        <div class="search-section">
+                            <h3 class="s-text-caption mb8">Title</h3>
+                            <div class="filter-row">
+                                <div class="filter-group">
+                                    <label class="s-label" for="title">Include</label>
+                                    <input type="text" id="title" name="title" 
+                                           value="{{ filters.title or '' }}" 
+                                           class="s-input" placeholder="Apache">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="s-label" for="title_exclude">Exclude</label>
+                                    <input type="text" id="title_exclude" name="title_exclude" 
+                                           value="{{ filters.title_exclude or '' }}" 
+                                           class="s-input" placeholder="nginx">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Banner Filters -->
+                        <div class="search-section">
+                            <h3 class="s-text-caption mb8">Banner</h3>
+                            <div class="filter-row">
+                                <div class="filter-group">
+                                    <label class="s-label" for="banner">Include</label>
+                                    <input type="text" id="banner" name="banner" 
+                                           value="{{ filters.banner or '' }}" 
+                                           class="s-input" placeholder="Apache">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="s-label" for="banner_exclude">Exclude</label>
+                                    <input type="text" id="banner_exclude" name="banner_exclude" 
+                                           value="{{ filters.banner_exclude or '' }}" 
+                                           class="s-input" placeholder="nginx">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Headers Filters -->
+                        <div class="search-section">
+                            <h3 class="s-text-caption mb8">Headers</h3>
+                            <div class="filter-row">
+                                <div class="filter-group">
+                                    <label class="s-label" for="headers">Include</label>
+                                    <input type="text" id="headers" name="headers" 
+                                           value="{{ filters.headers or '' }}" 
+                                           class="s-input" placeholder="Server">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="s-label" for="headers_exclude">Exclude</label>
+                                    <input type="text" id="headers_exclude" name="headers_exclude" 
+                                           value="{{ filters.headers_exclude or '' }}" 
+                                           class="s-input" placeholder="nginx">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- HTTP Response Filters -->
+                        <div class="search-section">
+                            <h3 class="s-text-caption mb8">HTTP Response</h3>
+                            <div class="filter-row">
+                                <div class="filter-group">
+                                    <label class="s-label" for="http_response">Include</label>
+                                    <input type="text" id="http_response" name="http_response" 
+                                           value="{{ filters.http_response or '' }}" 
+                                           class="s-input" placeholder="Welcome">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="s-label" for="http_response_exclude">Exclude</label>
+                                    <input type="text" id="http_response_exclude" name="http_response_exclude" 
+                                           value="{{ filters.http_response_exclude or '' }}" 
+                                           class="s-input" placeholder="Error">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Certificate Filters - Not developed yet -->
+                        <!-- <div class="search-section">
+                            <h3 class="s-text-caption mb8">Certificate</h3>
+                            <div class="filter-row">
+                                <div class="filter-group">
+                                    <label class="s-label" for="certificate">Include</label>
+                                    <input type="text" id="certificate" name="certificate" 
+                                           value="{{ filters.certificate or '' }}" 
+                                           class="s-input" placeholder="Let's Encrypt">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="s-label" for="certificate_exclude">Exclude</label>
+                                    <input type="text" id="certificate_exclude" name="certificate_exclude" 
+                                           value="{{ filters.certificate_exclude or '' }}" 
+                                           class="s-input" placeholder="Self-signed">
+                                </div>
+                            </div>
+                        </div> -->
+
+                        <!-- Date Range Filters -->
+                        <div class="search-section">
+                            <h3 class="s-text-caption mb8">Date Range</h3>
+                            <div class="filter-row">
+                                <div class="filter-group">
+                                    <label class="s-label" for="date_from">From</label>
+                                    <input type="date" id="date_from" name="date_from" 
+                                           value="{{ filters.date_from or '' }}" 
+                                           class="s-input">
+                                </div>
+                                <div class="filter-group">
+                                    <label class="s-label" for="date_to">To</label>
+                                    <input type="date" id="date_to" name="date_to" 
+                                           value="{{ filters.date_to or '' }}" 
+                                           class="s-input">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Active Status Filter - Commented out since all records are active -->
+                        <!-- <div class="search-section">
+                            <h3 class="s-text-caption mb8">Active Status</h3>
+                            <select id="is_active" name="is_active" class="s-select">
+                                <option value="">All</option>
+                                <option value="true" {% if filters.is_active == true %}selected{% endif %}>Active Only</option>
+                                <option value="false" {% if filters.is_active == false %}selected{% endif %}>Inactive Only</option>
+                            </select>
+                        </div> -->
+                    </div>
+
+                    <!-- Sorting and Controls -->
+                    <div class="d-flex ai-center jc-space-between mt16">
+                        <div class="sort-controls">
+                            <label class="s-label" for="sort_by">Sort by:</label>
+                            <select id="sort_by" name="sort_by" class="s-select">
+                                <option value="scan_timestamp" {% if filters.sort_by == 'scan_timestamp' %}selected{% endif %}>Scan Time</option>
+                                <option value="created_at" {% if filters.sort_by == 'created_at' %}selected{% endif %}>Created</option>
+                                <option value="ip_address" {% if filters.sort_by == 'ip_address' %}selected{% endif %}>IP Address</option>
+                                <option value="port" {% if filters.sort_by == 'port' %}selected{% endif %}>Port</option>
+                                <option value="status_code" {% if filters.sort_by == 'status_code' %}selected{% endif %}>Status Code</option>
+                                <option value="title" {% if filters.sort_by == 'title' %}selected{% endif %}>Title</option>
+                            </select>
+                            <select id="sort_order" name="sort_order" class="s-select">
+                                <option value="desc" {% if filters.sort_order == 'desc' %}selected{% endif %}>Descending</option>
+                                <option value="asc" {% if filters.sort_order == 'asc' %}selected{% endif %}>Ascending</option>
+                            </select>
+                            <label class="s-label" for="per_page">Results per page:</label>
+                            <select id="per_page" name="per_page" class="s-select">
+                                <option value="10" {% if filters.per_page == 10 %}selected{% endif %}>10</option>
+                                <option value="20" {% if filters.per_page == 20 %}selected{% endif %}>20</option>
+                                <option value="50" {% if filters.per_page == 50 %}selected{% endif %}>50</option>
+                                <option value="100" {% if filters.per_page == 100 %}selected{% endif %}>100</option>
+                                <option value="200" {% if filters.per_page == 200 %}selected{% endif %}>200</option>
+                                <option value="500" {% if filters.per_page == 500 %}selected{% endif %}>500</option>
+                            </select>
+                        </div>
+                        
+                        <div class="clear-filters">
+                            <a href="/search" class="s-btn">Clear All</a>
+                            <button type="submit" class="s-btn s-btn__primary">Search</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Results Container -->
+        <div class="s-card results-container" id="results-container">
+            <div class="s-card--header">
+                <h2 class="s-card--title">
+                    Results 
+                    <span class="s-badge s-badge__gold">{{ pagination.total_count }} total</span>
+                </h2>
+            </div>
+            <div class="s-card--body">
+                {% if host_responses %}
+                    <div class="s-table-container">
+                        <table class="s-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">IP Address</th>
+                                    <th scope="col">Port</th>
+                                    <th scope="col">Status Code</th>
+                                    <th scope="col">Title</th>
+                                    <th scope="col">Banner</th>
+                                    <th scope="col">HTTP Header</th>
+                                    <th scope="col">HTTP Response</th>
+                                    <th scope="col">Scan Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for response in host_responses %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ response.url }}">
+                                            <code class="s-code">{{ response.ip_address }}</code>
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <span class="s-badge s-badge__outlined">{{ response.port }}</span>
+                                    </td>
+                                    <td>
+                                        {% if response.status_code == 200 %}
+                                        <span class="s-badge s-badge__success">{{ response.status_code }}</span>
+                                        {% else %}
+                                        <span class="s-badge s-badge__danger">{{ response.status_code }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if response.title %}
+                                        <div class="s-text-caption" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                            {{ response.title }}
+                                        </div>
+                                        {% else %}
+                                        <span class="s-text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if response.banner %}
+                                        <div class="s-text-caption" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                            {{ response.banner }}
+                                        </div>
+                                        {% else %}
+                                        <span class="s-text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if response.headers %}
+                                        <div class="s-text-caption" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                            {{ response.headers }}
+                                        </div>
+                                        {% else %}
+                                        <span class="s-text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if response.http_response %}
+                                        <div class="s-text-caption" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                            {{ response.http_response }}
+                                        </div>
+                                        {% else %}
+                                        <span class="s-text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <time class="s-text-caption">{{ response.scan_timestamp }}</time>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    {% if pagination.total_pages > 1 %}
+                    <div class="d-flex ai-center jc-space-between mt16">
+                        <div class="s-text-caption">
+                            Showing {{ (pagination.page - 1) * pagination.per_page + 1 }} to 
+                            {{ pagination.page * pagination.per_page if pagination.page * pagination.per_page < pagination.total_count else pagination.total_count }} 
+                            of {{ pagination.total_count }} results
+                        </div>
+                        <div class="s-pagination">
+                            {% if pagination.has_prev %}
+                            <a href="?{{ request.query_params|replace('page', 'page')|replace('page=' + pagination.page|string, 'page=' + pagination.prev_page|string) }}" class="s-pagination--item">
+                                <svg class="svg-icon iconArrowLeft" width="18" height="18" viewBox="0 0 18 18">
+                                    <path d="M5.5 4.5 10.5 9.5 5.5 14.5"></path>
+                                </svg>
+                            </a>
+                            {% endif %}
+                            
+                            {% for p in range(1, pagination.total_pages + 1) %}
+                                {% if p == pagination.page %}
+                                <span class="s-pagination--item s-pagination--item__current">{{ p }}</span>
+                                {% elif p <= 3 or p > pagination.total_pages - 3 or (p >= pagination.page - 1 and p <= pagination.page + 1) %}
+                                <a href="?{{ request.query_params|replace('page', 'page')|replace('page=' + pagination.page|string, 'page=' + p|string) }}" class="s-pagination--item">{{ p }}</a>
+                                {% elif p == 4 and pagination.page > 5 %}
+                                <span class="s-pagination--item s-pagination--item__clear">…</span>
+                                {% elif p == pagination.total_pages - 3 and pagination.page < pagination.total_pages - 4 %}
+                                <span class="s-pagination--item s-pagination--item__clear">…</span>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if pagination.has_next %}
+                            <a href="?{{ request.query_params|replace('page', 'page')|replace('page=' + pagination.page|string, 'page=' + pagination.next_page|string) }}" class="s-pagination--item">
+                                <svg class="svg-icon iconArrowRight" width="18" height="18" viewBox="0 0 18 18">
+                                    <path d="M12.5 4.5 7.5 9.5 12.5 14.5"></path>
+                                </svg>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Timing Info -->
+                    {% if timing %}
+                    <div class="timing-info">
+                        Query completed in {{ timing.total_ms }}ms (Count: {{ timing.count_ms }}ms, Search: {{ timing.search_ms }}ms)
+                    </div>
+                    {% endif %}
+
+                    <!-- Export Buttons -->
+                    <div class="export-buttons">
+                        <a href="/api/search?{{ request.query_params|string }}" target="_blank" class="s-btn s-btn__outlined">Export JSON</a>
+                        <a href="/api/search/export?{{ request.query_params|string }}" class="s-btn s-btn__outlined">Export CSV</a>
+                    </div>
+
+                {% else %}
+                    <div class="s-empty-state">
+                        <div class="s-empty-state--illustration">
+                            <svg class="svg-icon iconSearch" width="48" height="48" viewBox="0 0 48 48">
+                                <path d="M20.5 6C12.5 6 6 12.5 6 20.5S12.5 35 20.5 35c4.5 0 8.5-2 11.5-5l10 10 3-3-10-10c3-3 5-7 5-11.5C40 12.5 33.5 6 25.5 6H20.5zM20.5 9c6.5 0 11.5 5 11.5 11.5S27 32 20.5 32 9 27 9 20.5 14 9 20.5 9z"/>
+                            </svg>
+                        </div>
+                        <h3 class="s-empty-state--title">No results found</h3>
+                        <p class="s-empty-state--description">
+                            No host responses found matching your criteria. Try adjusting your search filters.
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Toggle advanced filters
+        function toggleAdvanced() {
+            const advancedFilters = document.getElementById('advanced-filters');
+            const toggle = document.querySelector('.advanced-toggle span');
+            
+            if (advancedFilters.classList.contains('show')) {
+                advancedFilters.classList.remove('show');
+                toggle.textContent = '🔽 Advanced Filters';
+            } else {
+                advancedFilters.classList.add('show');
+                toggle.textContent = '🔼 Advanced Filters';
+            }
+        }
+
+        // Show advanced filters if any advanced filters are filled (excluding quick search)
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('search-form');
+            const advancedInputs = form.querySelectorAll('#advanced-filters input, #advanced-filters select');
+            let hasAdvancedFilters = false;
+            
+            advancedInputs.forEach(input => {
+                if (input.value && input.value.trim() !== '' && input.name !== 'page') {
+                    hasAdvancedFilters = true;
+                }
+            });
+            
+            if (hasAdvancedFilters) {
+                document.getElementById('advanced-filters').classList.add('show');
+                document.querySelector('.advanced-toggle span').textContent = '🔼 Advanced Filters';
+            }
+        });
+    </script>
+</body>
+</html>

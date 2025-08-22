@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hadal - Network Scanner Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/stacks.min.css') }}">
+    <script src="{{ url_for('static', path='/js/stacks.min.js') }}"></script>
+</head>
+<body class="theme-dark p16">
+
+    <main>
+        <!-- Header -->
+        <div class="d-flex ai-center jc-space-between mb24">
+            <div class="d-flex ai-center g16">
+                <img src="/static/zachteberm.jpg" alt="Hadal" style="height: 48px; width: auto;">
+                <h1 class="fs-headline1">Hadal Network Scanner</h1>
+            </div>
+            <nav class="d-flex g8">
+                <a href="/search" class="s-btn s-btn__primary">Search Responses</a>
+                <a href="/network-blocks" class="s-btn s-btn__outlined">Network Blocks</a>
+            </nav>
+        </div>
+
+        <!-- Summary Statistics -->
+        <div class="grid g16 mb24">
+            <div class="grid--cell s-card">
+                <div class="s-card--body">
+                    <div class="d-flex ai-center jc-space-between">
+                        <div>
+                            <div class="s-text-caption s-text-muted">Total Network Blocks</div>
+                            <div class="fs-title">{{ summary.total_blocks }}</div>
+                        </div>
+                        <div class="s-badge s-badge__outlined s-badge__gold">
+                            <svg class="svg-icon iconDatabase" width="16" height="16" viewBox="0 0 16 16">
+                                <path d="M8 1C4.5 1 1 2.5 1 4.5v7C1 13.5 4.5 15 8 15s7-1.5 7-3.5v-7C15 2.5 11.5 1 8 1zM8 2.5c3.5 0 6 1.5 6 2.5s-2.5 2.5-6 2.5S2 6.5 2 5s2.5-2.5 6-2.5zM2 6.5c0 1 2.5 2.5 6 2.5s6-1.5 6-2.5v2c0 1-2.5 2.5-6 2.5s-6-1.5-6-2.5v-2z"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid--cell s-card">
+                <div class="s-card--body">
+                    <div class="d-flex ai-center jc-space-between">
+                        <div>
+                            <div class="s-text-caption s-text-muted">Completed Blocks</div>
+                            <div class="fs-title">{{ summary.completed_blocks }}</div>
+                        </div>
+                        <div class="s-badge s-badge__success">
+                            <svg class="svg-icon iconCheckmark" width="16" height="16" viewBox="0 0 16 16">
+                                <path d="M13.5 4.5 6 12 2.5 8.5"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid--cell s-card">
+                <div class="s-card--body">
+                    <div class="d-flex ai-center jc-space-between">
+                        <div>
+                            <div class="s-text-caption s-text-muted">Pending Blocks</div>
+                            <div class="fs-title">{{ summary.pending_blocks }}</div>
+                        </div>
+                        <div class="s-badge s-badge__warning">
+                            <svg class="svg-icon iconClock" width="16" height="16" viewBox="0 0 16 16">
+                                <path d="M8 1C4.5 1 1 4.5 1 8s3.5 7 7 7 7-3.5 7-7-3.5-7-7-7zM8 3v5l3.5 2"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid--cell s-card">
+                <div class="s-card--body">
+                    <div class="d-flex ai-center jc-space-between">
+                        <div>
+                            <div class="s-text-caption s-text-muted">Active Responses</div>
+                            <div class="fs-title">{{ summary.active_responses }}</div>
+                        </div>
+                        <div class="s-badge s-badge__info">
+                            <svg class="svg-icon iconNetwork" width="16" height="16" viewBox="0 0 16 16">
+                                <path d="M8 1C4.5 1 1 4.5 1 8s3.5 7 7 7 7-3.5 7-7-3.5-7-7-7zM8 3v5l3.5 2"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Network Blocks -->
+        <div class="s-card mb24">
+            <div class="s-card--header">
+                <h2 class="s-card--title">Recent Network Blocks</h2>
+                <a href="/network-blocks" class="s-btn s-btn__outlined">View All</a>
+            </div>
+            <div class="s-card--body">
+                {% if network_blocks %}
+                <div class="s-table-container">
+                    <table class="s-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Network</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Assigned To</th>
+                                <th scope="col">Created</th>
+                                <th scope="col">Updated</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for block in network_blocks %}
+                            <tr>
+                                <td>
+                                    <span class="s-badge s-badge__outlined">{{ block.network }}</span>
+                                </td>
+                                <td>
+                                    {% if block.status == 'COMPLETED' %}
+                                    <span class="s-badge s-badge__success">Completed</span>
+                                    {% elif block.status == 'PENDING' %}
+                                    <span class="s-badge s-badge__warning">Pending</span>
+                                    {% elif block.status == 'IN_PROGRESS' %}
+                                    <span class="s-badge s-badge__info">In Progress</span>
+                                    {% else %}
+                                    <span class="s-badge s-badge__outlined">{{ block.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if block.assigned_to %}
+                                    <span class="s-badge s-badge__outlined">{{ block.assigned_to }}</span>
+                                    {% else %}
+                                    <span class="s-text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <time class="s-text-caption">{{ block.created_at }}</time>
+                                </td>
+                                <td>
+                                    <time class="s-text-caption">{{ block.updated_at }}</time>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="s-empty-state">
+                    <h3 class="s-empty-state--title">No network blocks found</h3>
+                    <p class="s-empty-state--description">No network blocks have been created yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Host Responses -->
+        <div class="s-card">
+            <div class="s-card--header">
+                <h2 class="s-card--title">Recent Host Responses</h2>
+                <a href="/search" class="s-btn s-btn__outlined">Search All</a>
+            </div>
+            <div class="s-card--body">
+                {% if host_responses %}
+                <div class="s-table-container">
+                    <table class="s-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">IP Address</th>
+                                <th scope="col">Port</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Protocol</th>
+                                <th scope="col">Scan Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for response in host_responses %}
+                            <tr>
+                                <td>
+                                    <code class="s-code">{{ response.ip_address }}</code>
+                                </td>
+                                <td>
+                                    <span class="s-badge s-badge__outlined">{{ response.port }}</span>
+                                </td>
+                                <td>
+                                    {% if response.is_active %}
+                                    <span class="s-badge s-badge__success">Active</span>
+                                    {% else %}
+                                    <span class="s-badge s-badge__danger">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="s-badge s-badge__outlined">{{ response.protocol }}</span>
+                                </td>
+                                <td>
+                                    <time class="s-text-caption">{{ response.scan_timestamp }}</time>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="s-empty-state">
+                    <h3 class="s-empty-state--title">No host responses found</h3>
+                    <p class="s-empty-state--description">No host responses have been recorded yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </main>
+
+    <script src="{{ url_for('static', path='/js/browser.umd.js') }}"></script>
+</body>
+</html>

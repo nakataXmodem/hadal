@@ -1,0 +1,11 @@
+pydantic
+uvicorn[standard]
+sqlalchemy
+psycopg2-binary
+alembic
+asyncpg
+starlette
+jinja2
+python-multipart
+blake3
+aiohttp
