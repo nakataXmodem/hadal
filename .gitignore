@@ -127,5 +127,5 @@ certbot/www/
 certbot/conf/
 
 
-crawler/timelinedb/
+checker/timelinedb/
 nohup.out
