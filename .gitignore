@@ -125,3 +125,6 @@ ssl/
 nginx/ssl/
 certbot/www/
 certbot/conf/
+
+
+crawler/timelinedb/
